@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# fuentes de datos crudas (Excel/gpkg) — no se versionan, solo el JSON/GeoJSON
+# generado por scripts/build_data.py (data/mcps.json, data/provincias.geojson)
+/data/source/
+
+# config local de la sesión de desarrollo (preview tooling), no del proyecto
+/.claude/

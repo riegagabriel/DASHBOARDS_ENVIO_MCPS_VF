@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dashboard MCP — Resumen (Next.js)
 
-## Getting Started
+Auditoría de correcciones del padrón de MCPs (RENIEC) — herramienta de auditoría
+interna. Versión Next.js/Vercel del dashboard que antes vivía en Streamlit
+(`DASHBOARD_MCPS_PROBLEMAS`, proyecto hermano).
 
-First, run the development server:
+## Vistas
+
+1. **Resumen ejecutivo** — KPIs, evolución del padrón por etapa, composición
+   por estado de error, causas agrupadas, causas por provincia.
+2. **Evolución de electores** — Top 20 MCPs por variación, proporción de
+   correcciones, tabla filtrable por departamento/provincia.
+3. **Mapa de errores** — filtros, gráfico de errores por provincia, mapa de
+   coropletas (estado del error / causa predominante), tabla filtrable.
+4. **Ficha por MCP** — buscador por nombre/código/departamento/provincia;
+   incluye identidades históricas reclasificadas (ej. una MCP que cambió de
+   distrito), mostrando a qué identidad vigente corresponde el resultado final.
+
+Todos los KPIs se calculan sobre la lista final de MCPs únicas (vigentes) —
+nunca sobre las filas de identidad histórica.
+
+## Cómo correr localmente
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Datos
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Los datos vienen de 2 fuentes (`data/source/`, no versionadas al repo — ver
+`.gitignore`):
 
-## Learn More
+- `LISTA_HISTORICA_COMPLETA_MCP.xlsx` — identidad, historial de cambios de
+  distrito/código, evolución Febrero→Abril→Junio→Final.
+- `BASE_MCPS_FINALISISIMA_FUSIONADA.xlsx` — causas de error, detalle de
+  electores pendientes, narrativa de casos especiales.
+- `PROVINCIA.gpkg` — límites geográficos para el mapa de coropletas.
 
-To learn more about Next.js, take a look at the following resources:
+`scripts/build_data.py` cruza ambas fuentes y genera los estáticos que
+consume la app (sí versionados):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `data/mcps.json` — todas las MCP (vigentes + identidad histórica).
+- `data/provincias.geojson` — límites de provincia.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Para regenerar tras actualizar los Excel fuente:
 
-## Deploy on Vercel
+```bash
+python scripts/build_data.py
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Requiere `pandas`, `numpy`, `openpyxl` y `geopandas` (esta última solo para
+leer el `.gpkg`).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Stack
+
+Next.js 16 (App Router) + TypeScript + Tailwind CSS + `react-plotly.js`
+(mismo motor de mapas MapLibre que se validó en la versión Streamlit).
+
+## Despliegue
+
+Pensado para desplegarse en Vercel importando este repositorio directamente
+— no requiere backend ni base de datos, todos los datos son estáticos
+(`data/*.json`).
