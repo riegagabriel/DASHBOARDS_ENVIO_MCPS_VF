@@ -110,7 +110,10 @@ export default function MapaErroresView({ mcps, geojson }: Props) {
   }));
 
   // ── Mapa de coropletas (independiente de los filtros de arriba) ─────────
-  const errorNacional = mcps.filter((m) => m.estadoError !== "SIN ERROR" && m.departamento && m.provincia);
+  const errorNacional = useMemo(
+    () => mcps.filter((m) => m.estadoError !== "SIN ERROR" && m.departamento && m.provincia),
+    [mcps]
+  );
 
   const mapaTrace: Data[] = useMemo(() => {
     if (modoMapa === "estado") {

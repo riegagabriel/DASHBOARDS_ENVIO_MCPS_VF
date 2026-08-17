@@ -69,7 +69,7 @@ function ResultCard({ mcp, allMcps }: { mcp: Mcp; allMcps: Mcp[] }) {
     return (
       <details className="rounded-lg border border-slate-200 mb-3 open:shadow-sm" open>
         <summary className="cursor-pointer px-4 py-3 font-medium text-slate-800">
-          🕰️ {mcp.departamento} › {mcp.provincia} › <strong>{mcp.mcp}</strong> — `IDENTIDAD ANTERIOR (reclasificada)`
+          🕰️ {mcp.departamento} › {mcp.provincia} › <strong>{mcp.mcp}</strong> — IDENTIDAD ANTERIOR (reclasificada)
         </summary>
         <div className="px-4 pb-4">
           <div className="rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-sm px-3 py-2 mb-3">
@@ -124,7 +124,7 @@ function ResultCard({ mcp, allMcps }: { mcp: Mcp; allMcps: Mcp[] }) {
     <details className="rounded-lg border border-slate-200 mb-3 open:shadow-sm" open>
       <summary className="cursor-pointer px-4 py-3 font-medium text-slate-800">
         {ESTADO_BADGE[mcp.estadoError]} {mcp.departamento} › {mcp.provincia} › <strong>{mcp.mcp}</strong> —{" "}
-        `{mcp.estadoError}`
+        {mcp.estadoError}
       </summary>
       <div className="px-4 pb-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">

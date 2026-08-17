@@ -17,6 +17,7 @@ export interface Mcp {
   rolFila: RolFila;
   idVinculo: string | null;
   clasificacionHistorica: string | null;
+  carpetaOrigen: string | null;
   etapaFebrero: number | null;
   etapaAbril: number | null;
   etapaJunio: number | null;

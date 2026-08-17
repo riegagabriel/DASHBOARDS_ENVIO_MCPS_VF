@@ -69,9 +69,9 @@ export default function EvolucionPage() {
         <div>
           <div className="flex items-start justify-between gap-2">
             <h2 className="text-lg font-semibold text-slate-900">Top 20 MCPs por variación absoluta (Feb. → Final)</h2>
-            <details className="text-sm shrink-0">
+            <details className="relative text-sm shrink-0">
               <summary className="cursor-pointer list-none text-lg">ℹ️</summary>
-              <div className="absolute z-10 mt-1 w-80 rounded-lg border border-slate-200 bg-white p-3 shadow-lg text-slate-600">
+              <div className="absolute z-10 right-0 mt-1 w-80 rounded-lg border border-slate-200 bg-white p-3 shadow-lg text-slate-600">
                 Cada barra es cuánto cambió el conteo de electores de una MCP entre el primer registro
                 (febrero) y el valor final consolidado.
                 <br />
