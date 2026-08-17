@@ -4,19 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Resumen ejecutivo", icon: "🏠" },
-  { href: "/evolucion", label: "Evolución de electores", icon: "📈" },
-  { href: "/mapa-errores", label: "Mapa de errores", icon: "⚠️" },
-  { href: "/ficha", label: "Ficha por MCP", icon: "🔍" },
+  { href: "/",            label: "Inicio",               icon: "🏠" },
+  { href: "/trayectoria", label: "Trayectoria del universo", icon: "📈" },
+  { href: "/mapa",        label: "Mapa de distribución", icon: "🗺️" },
+  { href: "/ficha",       label: "Trazabilidad por MCP", icon: "🔍" },
 ];
 
 interface SidebarProps {
   totalMcps: number;
-  nSubsanados: number;
-  nPendientes: number;
+  totalElectores: number;
+  nNuevas: number;
 }
 
-export default function Sidebar({ totalMcps, nSubsanados, nPendientes }: SidebarProps) {
+export default function Sidebar({ totalMcps, totalElectores, nNuevas }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -26,7 +26,7 @@ export default function Sidebar({ totalMcps, nSubsanados, nPendientes }: Sidebar
         <h1 className="text-lg font-semibold text-[#002F56]">Dashboard MCP</h1>
       </div>
       <p className="text-sm text-slate-500 mb-6">
-        Auditoría de correcciones del padrón de MCPs — RENIEC
+        Trazabilidad de envíos del padrón de MCPs — RENIEC
       </p>
 
       <nav className="flex flex-col gap-1">
@@ -49,11 +49,15 @@ export default function Sidebar({ totalMcps, nSubsanados, nPendientes }: Sidebar
         })}
       </nav>
 
-      <div className="mt-auto pt-6 border-t border-slate-200 text-xs text-slate-500">
+      <div className="mt-auto pt-6 border-t border-slate-200 text-xs text-slate-500 space-y-0.5">
         <p>
-          <strong className="text-slate-700">{totalMcps.toLocaleString("es-PE")}</strong> MCPs ·{" "}
-          <strong className="text-slate-700">{nSubsanados}</strong> subsanados ·{" "}
-          <strong className="text-slate-700">{nPendientes}</strong> pendientes
+          <strong className="text-slate-700">{totalMcps.toLocaleString("es-PE")}</strong> MCPs vigentes
+        </p>
+        <p>
+          <strong className="text-slate-700">{totalElectores.toLocaleString("es-PE")}</strong> electores (final)
+        </p>
+        <p>
+          <strong className="text-slate-700">{nNuevas}</strong> MCPs sin dato en febrero
         </p>
       </div>
     </aside>
