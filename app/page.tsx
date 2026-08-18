@@ -10,6 +10,7 @@ import {
   getEvolucionAgregada,
   getTopVariaciones,
   getEstadisticasPorProvincia,
+  getCarpetaOrigenDistribucion,
 } from "@/lib/data";
 import { ETAPAS_ORDEN } from "@/lib/types";
 import type { Data } from "plotly.js";
@@ -38,8 +39,31 @@ export default function HomePage() {
   const estables  = vigentes.filter((m) => m.variacionAbs === 0).length;
 
   // ── Evolución (todas las rondas) ─────────────────────────────────
-  const evol = getEvolucionAgregada();
+  const evol       = getEvolucionAgregada();
+  const carpetaDist = getCarpetaOrigenDistribucion();
+
+  // Agrupa carpetas de origen por etapa para la barra apilada de FINAL
+  const origenPorEtapa: Record<string, number> = { FEBRERO: 0, ABRIL: 0, JUNIO: 0, JULIO: 0, AGOSTO: 0 };
+  for (const { carpeta, count } of carpetaDist) {
+    if      (carpeta.startsWith("1_")) origenPorEtapa.FEBRERO += count;
+    else if (carpeta.startsWith("2_")) origenPorEtapa.ABRIL   += count;
+    else if (carpeta.startsWith("3_") || carpeta.startsWith("4_")) origenPorEtapa.JUNIO  += count;
+    else if (carpeta.startsWith("5_") || carpeta.startsWith("6_") || carpeta.startsWith("7_")) origenPorEtapa.JULIO  += count;
+    else if (carpeta.startsWith("8_")) origenPorEtapa.AGOSTO  += count;
+  }
+
+  const ORIGEN_COLORS: Record<string, string> = {
+    FEBRERO: "#C8DCF0",
+    ABRIL:   "#8FB4D4",
+    JUNIO:   "#4A7FAE",
+    JULIO:   "#2E6F9E",
+    AGOSTO:  "#001E3C",
+  };
+
+  const evolTracePorRonda = evol.filter((e) => e.etapa !== "FINAL");
+
   const evolTrace: Data[] = [
+    // Línea: total electores (eje izquierdo)
     {
       type: "scatter",
       mode: "text+lines+markers",
@@ -51,16 +75,31 @@ export default function HomePage() {
       line: { color: AZUL, width: 3 },
       marker: { size: 9, color: AZUL },
     },
+    // Barras: padrones actualizados por ronda, FEBRERO–AGOSTO (eje derecho)
     {
       type: "bar",
-      name: "MCPs con envío real",
-      x: evol.map((e) => e.etapa),
-      y: evol.map((e) => e.mcpsConDatoReal),
+      name: "Padrones actualizados",
+      x: evolTracePorRonda.map((e) => e.etapa),
+      y: evolTracePorRonda.map((e) => e.mcpsConDatoReal),
       marker: { color: AZUL_PAL },
       yaxis: "y2",
-      text: evol.map((e) => String(e.mcpsConDatoReal)),
+      text: evolTracePorRonda.map((e) => e.mcpsConDatoReal.toLocaleString("es-PE")),
       textposition: "outside",
     },
+    // Barras apiladas para FINAL: muestra composición por ronda de origen
+    ...Object.entries(origenPorEtapa)
+      .filter(([, n]) => n > 0)
+      .map(([etapa, n]) => ({
+        type: "bar" as const,
+        name: `Final · origen ${etapa}`,
+        x: ["FINAL"],
+        y: [n],
+        marker: { color: ORIGEN_COLORS[etapa] },
+        yaxis: "y2" as const,
+        text: [n.toLocaleString("es-PE")],
+        textposition: "inside" as const,
+        insidetextanchor: "middle" as const,
+      })),
   ];
 
   // ── Top variaciones ───────────────────────────────────────────────
@@ -112,11 +151,12 @@ export default function HomePage() {
         data={evolTrace}
         height={440}
         layout={{
-          legend: { orientation: "h", y: -0.15 },
+          barmode: "stack",
+          legend: { orientation: "h", y: -0.2 },
           xaxis: { categoryorder: "array", categoryarray: ETAPAS_ORDEN as unknown as string[] },
-          yaxis:  { title: { text: "MCPs con envío real" } },
-          yaxis2: { title: { text: "Total electores" }, overlaying: "y", side: "right" },
-          margin: { t: 60, b: 60 },
+          yaxis:  { title: { text: "Total electores" } },
+          yaxis2: { title: { text: "Padrones actualizados" }, overlaying: "y", side: "right" },
+          margin: { t: 60, b: 80 },
         }}
       />
 
