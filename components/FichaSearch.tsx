@@ -23,14 +23,41 @@ const ETAPA_LABEL: Record<string, string> = {
 };
 
 // ── Nota ejecutiva ────────────────────────────────────────────────
+// Elimina referencias internas del texto crudo antes de mostrarlo.
+const CLEAN_RULES: [RegExp, string][] = [
+  [/^CASO ESPECIAL:\s*/i,                          ""],
+  [/Detalle completo en[^.]+\./gi,                 ""],
+  [/LOCALMENTE por el proyecto[^,.)]+[,.]?\s*/gi,  ""],
+  [/asignado LOCALMENTE[^,.)]+[,.]?\s*/gi,         ""],
+  [/pendiente que[^.]+\./gi,                       ""],
+  [/Reclasificaci[oó]n confirmada con[^.]+\./gi,   ""],
+  [/BASE_MCPS_\S+/g,                               "el catálogo nacional"],
+  [/MEMORIA_GENERAL[^\s,).]*/g,                    ""],
+  [/RENIEC_JULIO_AGOSTO_\d+\/[^\s,).]+/g,          ""],
+  [/secci[oó]n\s+\w+/gi,                           ""],
+  [/\bel proyecto\b/gi,                            ""],
+];
+
+function cleanDescripcion(raw: string): string {
+  // Solo la primera oración (hasta el primer ". " o final)
+  const first = raw.split(/\.\s+/)[0] + ".";
+  let clean = first;
+  for (const [pattern, replacement] of CLEAN_RULES) {
+    clean = clean.replace(pattern, replacement);
+  }
+  // Normalizar espacios y puntuación
+  return clean.replace(/\s{2,}/g, " ").replace(/[,;]\s*\.$/, ".").trim();
+}
+
 function buildNota(mcp: Mcp): string | null {
-  if (mcp.descripcionCaso) return mcp.descripcionCaso;
-  if (mcp.nota)            return mcp.nota;
+  const raw = mcp.descripcionCaso ?? mcp.nota;
+  if (raw) {
+    const clean = cleanDescripcion(raw);
+    if (clean.length > 15) return clean;
+  }
 
-  const partes: string[] = [];
-
+  // Generación desde datos estructurales cuando no hay descripción
   if (mcp.etapaFebrero === null) {
-    // Incorporada después de FEBRERO
     const primeraEtapa =
       mcp.etapaAbril  !== null ? "ABRIL"  :
       mcp.etapaJunio  !== null ? "JUNIO"  :
@@ -38,23 +65,21 @@ function buildNota(mcp: Mcp): string | null {
       mcp.etapaAgosto !== null ? "AGOSTO" : null;
     const primerValor = mcp.etapaAbril ?? mcp.etapaJunio ?? mcp.etapaJulio ?? mcp.etapaAgosto ?? mcp.etapaFinal;
     if (primeraEtapa && primerValor !== null) {
-      partes.push(`Incorporada en ${primeraEtapa} con ${primerValor.toLocaleString("es-PE")} electores.`);
+      return `Incorporada en ${primeraEtapa} con ${primerValor.toLocaleString("es-PE")} electores.`;
     }
   } else if (mcp.variacionAbs !== null && mcp.variacionAbs !== 0) {
     const abs = Math.abs(mcp.variacionAbs).toLocaleString("es-PE");
     const pct = mcp.variacionPct !== null
       ? ` (${mcp.variacionPct > 0 ? "+" : ""}${mcp.variacionPct.toFixed(1)} %)`
       : "";
-    partes.push(
-      mcp.variacionAbs > 0
-        ? `Incremento de ${abs} electores${pct} respecto al padrón inicial.`
-        : `Reducción de ${abs} electores${pct} respecto al padrón inicial.`
-    );
+    return mcp.variacionAbs > 0
+      ? `Incremento de ${abs} electores${pct} respecto al padrón inicial.`
+      : `Reducción de ${abs} electores${pct} respecto al padrón inicial.`;
   } else {
-    partes.push(`Sin variación entre el padrón inicial y el dato final: ${mcp.etapaFinal?.toLocaleString("es-PE") ?? "—"} electores.`);
+    return `Sin variación entre el padrón inicial y el dato final: ${mcp.etapaFinal?.toLocaleString("es-PE") ?? "—"} electores.`;
   }
 
-  return partes.join(" ") || null;
+  return null;
 }
 
 // ── Timeline step ─────────────────────────────────────────────────
