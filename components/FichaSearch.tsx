@@ -363,18 +363,42 @@ function FichaMcp({ mcp, allMcps }: { mcp: Mcp; allMcps: Mcp[] }) {
 
 // ── Tabla filtrable ───────────────────────────────────────────────
 function TablaCompleta({ mcps }: { mcps: Mcp[] }) {
-  const [depto, setDepto]     = useState("(Todos)");
-  const [carpeta, setCarpeta] = useState("(Todas)");
+  const [depto,    setDepto]    = useState("(Todos)");
+  const [prov,     setProv]     = useState("(Todas)");
+  const [distrito, setDistrito] = useState("(Todos)");
+  const [carpeta,  setCarpeta]  = useState("(Todas)");
 
-  const deptos   = useMemo(() => ["(Todos)", ...Array.from(new Set(mcps.map((m) => m.departamento).filter(Boolean))).sort()], [mcps]);
-  const carpetas = useMemo(() => ["(Todas)", ...Array.from(new Set(mcps.map((m) => m.carpetaOrigen ?? "Sin datos"))).sort()], [mcps]);
+  const deptos = useMemo(() =>
+    ["(Todos)", ...Array.from(new Set(mcps.map((m) => m.departamento).filter(Boolean))).sort()],
+  [mcps]);
+
+  const provs = useMemo(() => {
+    const base = depto !== "(Todos)" ? mcps.filter((m) => m.departamento === depto) : mcps;
+    return ["(Todas)", ...Array.from(new Set(base.map((m) => m.provincia).filter(Boolean))).sort()];
+  }, [mcps, depto]);
+
+  const distritos = useMemo(() => {
+    let base = mcps;
+    if (depto !== "(Todos)") base = base.filter((m) => m.departamento === depto);
+    if (prov  !== "(Todas)") base = base.filter((m) => m.provincia    === prov);
+    return ["(Todos)", ...Array.from(new Set(base.map((m) => m.distrito).filter(Boolean))).sort()];
+  }, [mcps, depto, prov]);
+
+  const carpetas = useMemo(() =>
+    ["(Todas)", ...Array.from(new Set(mcps.map((m) => m.carpetaOrigen ?? "Sin datos"))).sort()],
+  [mcps]);
+
+  function handleDepto(val: string) { setDepto(val); setProv("(Todas)"); setDistrito("(Todos)"); }
+  function handleProv(val: string)  { setProv(val);  setDistrito("(Todos)"); }
 
   const filtered = useMemo(() => {
     let r = mcps;
-    if (depto   !== "(Todos)") r = r.filter((m) => m.departamento === depto);
-    if (carpeta !== "(Todas)") r = r.filter((m) => (m.carpetaOrigen ?? "Sin datos") === carpeta);
+    if (depto    !== "(Todos)") r = r.filter((m) => m.departamento === depto);
+    if (prov     !== "(Todas)") r = r.filter((m) => m.provincia    === prov);
+    if (distrito !== "(Todos)") r = r.filter((m) => m.distrito     === distrito);
+    if (carpeta  !== "(Todas)") r = r.filter((m) => (m.carpetaOrigen ?? "Sin datos") === carpeta);
     return r;
-  }, [mcps, depto, carpeta]);
+  }, [mcps, depto, prov, distrito, carpeta]);
 
   function toCSV() {
     const header = ["Departamento","Provincia","Distrito","MCP","Código","Febrero","Abril","Junio","Julio","Agosto","Final","Variación","Var%","Carpeta origen","Fuente final","Rol"];
@@ -404,10 +428,16 @@ function TablaCompleta({ mcps }: { mcps: Mcp[] }) {
   return (
     <div>
       <div className="flex flex-wrap gap-3 mb-3 items-center">
-        <select style={selectStyle} value={depto}   onChange={(e) => setDepto(e.target.value)}>
+        <select style={selectStyle} value={depto}    onChange={(e) => handleDepto(e.target.value)}>
           {deptos.map((d) => <option key={d}>{d}</option>)}
         </select>
-        <select style={selectStyle} value={carpeta} onChange={(e) => setCarpeta(e.target.value)}>
+        <select style={selectStyle} value={prov}     onChange={(e) => handleProv(e.target.value)}>
+          {provs.map((p) => <option key={p}>{p}</option>)}
+        </select>
+        <select style={selectStyle} value={distrito} onChange={(e) => setDistrito(e.target.value)}>
+          {distritos.map((d) => <option key={d}>{d}</option>)}
+        </select>
+        <select style={selectStyle} value={carpeta}  onChange={(e) => setCarpeta(e.target.value)}>
           {carpetas.map((c) => <option key={c}>{c}</option>)}
         </select>
         <button className="btn-primary ml-auto" onClick={toCSV}>
