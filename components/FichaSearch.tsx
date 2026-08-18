@@ -22,6 +22,41 @@ const ETAPA_LABEL: Record<string, string> = {
   FINAL:   "Final",
 };
 
+// ── Nota ejecutiva ────────────────────────────────────────────────
+function buildNota(mcp: Mcp): string | null {
+  if (mcp.descripcionCaso) return mcp.descripcionCaso;
+  if (mcp.nota)            return mcp.nota;
+
+  const partes: string[] = [];
+
+  if (mcp.etapaFebrero === null) {
+    // Incorporada después de FEBRERO
+    const primeraEtapa =
+      mcp.etapaAbril  !== null ? "ABRIL"  :
+      mcp.etapaJunio  !== null ? "JUNIO"  :
+      mcp.etapaJulio  !== null ? "JULIO"  :
+      mcp.etapaAgosto !== null ? "AGOSTO" : null;
+    const primerValor = mcp.etapaAbril ?? mcp.etapaJunio ?? mcp.etapaJulio ?? mcp.etapaAgosto ?? mcp.etapaFinal;
+    if (primeraEtapa && primerValor !== null) {
+      partes.push(`Incorporada en ${primeraEtapa} con ${primerValor.toLocaleString("es-PE")} electores.`);
+    }
+  } else if (mcp.variacionAbs !== null && mcp.variacionAbs !== 0) {
+    const abs = Math.abs(mcp.variacionAbs).toLocaleString("es-PE");
+    const pct = mcp.variacionPct !== null
+      ? ` (${mcp.variacionPct > 0 ? "+" : ""}${mcp.variacionPct.toFixed(1)} %)`
+      : "";
+    partes.push(
+      mcp.variacionAbs > 0
+        ? `Incremento de ${abs} electores${pct} respecto al padrón inicial.`
+        : `Reducción de ${abs} electores${pct} respecto al padrón inicial.`
+    );
+  } else {
+    partes.push(`Sin variación entre el padrón inicial y el dato final: ${mcp.etapaFinal?.toLocaleString("es-PE") ?? "—"} electores.`);
+  }
+
+  return partes.join(" ") || null;
+}
+
 // ── Timeline step ─────────────────────────────────────────────────
 function TimelineStep({
   etapa, valor, esReal, delta, esPrimero,
@@ -289,10 +324,10 @@ function FichaMcp({ mcp, allMcps }: { mcp: Mcp; allMcps: Mcp[] }) {
           </div>
 
           {/* Nota */}
-          {(mcp.descripcionCaso || mcp.nota) && (
-            <div className="rounded-md px-3 py-2.5 text-sm" style={{ background: "var(--blue-ghost)", border: "1px solid var(--blue-pale)", color: "var(--blue-brand)" }}>
-              <p className="font-semibold mb-0.5">Nota</p>
-              <p style={{ color: "var(--text-secondary)" }}>{mcp.descripcionCaso ?? mcp.nota}</p>
+          {buildNota(mcp) && (
+            <div className="rounded-md px-3 py-2.5 text-sm" style={{ background: "var(--blue-ghost)", border: "1px solid var(--blue-pale)" }}>
+              <p className="font-semibold mb-0.5" style={{ color: "var(--blue-brand)" }}>Nota</p>
+              <p style={{ color: "var(--text-secondary)" }}>{buildNota(mcp)}</p>
             </div>
           )}
         </div>
@@ -317,11 +352,11 @@ function TablaCompleta({ mcps }: { mcps: Mcp[] }) {
   }, [mcps, depto, carpeta]);
 
   function toCSV() {
-    const header = ["Departamento","Provincia","Distrito","MCP","Código","Febrero","Abril","Junio","Julio","Agosto","Final","Variación","Var%","Carpeta origen","Rol"];
+    const header = ["Departamento","Provincia","Distrito","MCP","Código","Febrero","Abril","Junio","Julio","Agosto","Final","Variación","Var%","Carpeta origen","Fuente final","Rol"];
     const lines  = filtered.map((m) => [
       m.departamento, m.provincia, m.distrito, m.mcp, m.codMcpReniec,
       m.etapaFebrero, m.etapaAbril, m.etapaJunio, m.etapaJulio, m.etapaAgosto, m.etapaFinal,
-      m.variacionAbs, m.variacionPct?.toFixed(1), m.carpetaOrigen, m.rolFila,
+      m.variacionAbs, m.variacionPct?.toFixed(1), m.carpetaOrigen, m.fuenteResultadoFinal, m.rolFila,
     ]);
     const csv = [header, ...lines].map((r) => r.map((v) => `"${v ?? ""}"`).join(",")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
@@ -361,7 +396,7 @@ function TablaCompleta({ mcps }: { mcps: Mcp[] }) {
         <table className="data-table">
           <thead>
             <tr>
-              {["Departamento","Provincia","MCP","Código","Feb.","Abr.","Jun.","Jul.","Ago.","Final","Var. abs.","Var. %","Carpeta origen"].map((h) => (
+              {["Departamento","Provincia","Distrito","MCP","Código","Feb.","Abr.","Jun.","Jul.","Ago.","Final","Var. abs.","Var. %","Carpeta origen"].map((h) => (
                 <th key={h}>{h}</th>
               ))}
             </tr>
@@ -371,6 +406,7 @@ function TablaCompleta({ mcps }: { mcps: Mcp[] }) {
               <tr key={m.cod ?? m.mcp}>
                 <td>{m.departamento}</td>
                 <td>{m.provincia}</td>
+                <td>{m.distrito}</td>
                 <td>{m.mcp}</td>
                 <td className="font-mono text-xs">{m.codMcpReniec}</td>
                 <td className="text-right tabular">{m.etapaFebrero?.toLocaleString("es-PE") ?? "—"}</td>
