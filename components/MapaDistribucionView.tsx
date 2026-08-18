@@ -71,12 +71,9 @@ export default function MapaDistribucionView({ stats, geojson }: Props) {
         {(Object.entries(METRICA_LABELS) as [Metrica, { label: string }][]).map(([key, { label }]) => (
           <button
             key={key}
+            className="btn-toggle"
+            data-active={metrica === key ? "true" : "false"}
             onClick={() => setMetrica(key)}
-            className={`px-5 py-2 rounded-full text-sm font-medium border transition-colors ${
-              metrica === key
-                ? "bg-[#002F56] text-white border-[#002F56]"
-                : "bg-white text-slate-700 border-slate-300 hover:border-[#002F56]"
-            }`}
           >
             {label}
           </button>
@@ -95,9 +92,9 @@ export default function MapaDistribucionView({ stats, geojson }: Props) {
           />
         </div>
         <div className="lg:col-span-2">
-          <h3 className="text-base font-semibold text-slate-800 mb-2">
+          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "var(--text-muted)" }}>
             Top 15 provincias — {METRICA_LABELS[metrica].label}
-          </h3>
+          </p>
           <PlotlyChart
             data={topTrace}
             height={520}

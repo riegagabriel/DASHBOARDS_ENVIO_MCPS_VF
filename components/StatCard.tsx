@@ -6,23 +6,26 @@ interface StatCardProps {
   deltaTone?: "positive" | "negative" | "neutral";
 }
 
-const TONE_CLASSES: Record<NonNullable<StatCardProps["deltaTone"]>, string> = {
-  positive: "bg-emerald-50 text-emerald-700",
-  negative: "bg-red-50 text-red-700",
-  neutral: "bg-slate-100 text-slate-600",
-};
-
 export default function StatCard({ label, value, caption, delta, deltaTone = "neutral" }: StatCardProps) {
+  const badgeBg =
+    deltaTone === "positive" ? "var(--green-bg)"
+    : deltaTone === "negative" ? "var(--red-bg)"
+    : "var(--blue-ghost)";
+  const badgeFg =
+    deltaTone === "positive" ? "var(--green)"
+    : deltaTone === "negative" ? "var(--red)"
+    : "var(--text-secondary)";
+
   return (
-    <div>
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="text-3xl font-semibold text-slate-900 mt-1">{value}</p>
+    <div className="stat-card">
+      <p className="stat-card__label">{label}</p>
+      <p className="stat-card__value">{value}</p>
       {delta && (
-        <span className={`inline-block mt-1 text-xs font-medium rounded-full px-2 py-0.5 ${TONE_CLASSES[deltaTone]}`}>
+        <span className="stat-card__badge" style={{ background: badgeBg, color: badgeFg }}>
           {delta}
         </span>
       )}
-      {caption && <p className="text-xs text-slate-500 mt-1 max-w-[16rem]">{caption}</p>}
+      {caption && <p className="stat-card__caption">{caption}</p>}
     </div>
   );
 }

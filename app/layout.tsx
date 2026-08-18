@@ -8,26 +8,48 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const vigentes = getVigentes();
+  const vigentes      = getVigentes();
   const totalElectores = vigentes.reduce((s, m) => s + (m.etapaFinal ?? 0), 0);
 
   return (
     <html lang="es" className="h-full">
-      <body className="h-full antialiased bg-white">
-        <header className="sticky top-0 z-20 bg-[#002F56] text-white px-8 py-3 flex items-center justify-between shadow-md">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">📋</span>
-            <div>
-              <h1 className="text-base font-semibold leading-tight">Dashboard MCP — RENIEC</h1>
-              <p className="text-xs text-blue-200">Trazabilidad de envíos del padrón</p>
+      <body className="h-full" style={{ background: "var(--surface-0)", color: "var(--text-primary)" }}>
+        <header className="site-header">
+          <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0.75rem 2rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <h1 style={{ fontSize: "0.9rem", fontWeight: 700, color: "#fff", lineHeight: 1.2, margin: 0 }}>
+                  Dashboard MCP · RENIEC
+                </h1>
+                <p style={{ fontSize: "0.7rem", color: "rgba(176,207,232,0.85)", margin: 0, letterSpacing: "0.04em" }}>
+                  Trazabilidad de envíos del padrón
+                </p>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "1.75rem" }}>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: "0.72rem", color: "rgba(176,207,232,0.7)", letterSpacing: "0.05em", textTransform: "uppercase", margin: 0 }}>
+                  MCPs vigentes
+                </p>
+                <p style={{ fontSize: "1rem", fontWeight: 700, color: "#fff", fontVariantNumeric: "tabular-nums", margin: 0, lineHeight: 1 }}>
+                  {vigentes.length.toLocaleString("es-PE")}
+                </p>
+              </div>
+              <div style={{ width: 1, height: "2rem", background: "rgba(255,255,255,0.12)" }} />
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: "0.72rem", color: "rgba(176,207,232,0.7)", letterSpacing: "0.05em", textTransform: "uppercase", margin: 0 }}>
+                  Total electores
+                </p>
+                <p style={{ fontSize: "1rem", fontWeight: 700, color: "#fff", fontVariantNumeric: "tabular-nums", margin: 0, lineHeight: 1 }}>
+                  {totalElectores.toLocaleString("es-PE")}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="hidden sm:flex items-center gap-6 text-sm text-blue-100">
-            <span><strong className="text-white">{vigentes.length.toLocaleString("es-PE")}</strong> MCPs</span>
-            <span><strong className="text-white">{totalElectores.toLocaleString("es-PE")}</strong> electores</span>
-          </div>
         </header>
-        <main className="px-8 py-8 max-w-screen-xl mx-auto">{children}</main>
+        <main style={{ maxWidth: "1280px", margin: "0 auto", padding: "2rem 2rem 4rem" }}>
+          {children}
+        </main>
       </body>
     </html>
   );

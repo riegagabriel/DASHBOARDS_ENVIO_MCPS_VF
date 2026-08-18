@@ -7,47 +7,41 @@ import { ETAPAS_ORDEN } from "@/lib/types";
 import PlotlyChart from "@/components/PlotlyChart";
 import type { Data } from "plotly.js";
 
-const AZUL      = "#002F56";
-const AZUL_MED  = "#2E6F9E";
-const VERDE     = "#27AE60";
-const ROJO      = "#C0392B";
-const GRIS      = "#94A3B8";
+const AZUL     = "#002F56";
+const AZUL_MED = "#2E6F9E";
+const VERDE    = "#1a7a45";
+const ROJO     = "#b91c1c";
+const GRIS     = "#6b8ca4";
 
 const ETAPA_LABEL: Record<string, string> = {
   FEBRERO: "Feb.",
   ABRIL:   "Abr.",
   JUNIO:   "Jun.",
+  JULIO:   "Jul.",
+  AGOSTO:  "Ago.",
   FINAL:   "Final",
 };
 
-// ── Timeline visual ───────────────────────────────────────────────
+// ── Timeline step ─────────────────────────────────────────────────
 function TimelineStep({
-  etapa,
-  valor,
-  esReal,
-  delta,
-  esPrimero,
+  etapa, valor, esReal, delta, esPrimero,
 }: {
-  etapa: string;
-  valor: number | null;
-  esReal: boolean;
-  delta: number | null;
-  esPrimero: boolean;
+  etapa: string; valor: number | null; esReal: boolean; delta: number | null; esPrimero: boolean;
 }) {
   const sinDato = valor === null;
   const deltaColor = delta === null ? GRIS : delta > 0 ? VERDE : delta < 0 ? ROJO : GRIS;
   const deltaLabel =
     delta === null ? null
-    : delta > 0 ? `+${delta.toLocaleString("es-PE")}`
-    : delta.toLocaleString("es-PE");
+    : delta > 0    ? `+${delta.toLocaleString("es-PE")}`
+    :                delta.toLocaleString("es-PE");
 
   return (
     <div className="flex items-center">
       {!esPrimero && (
-        <div className="flex flex-col items-center w-12 shrink-0">
-          <div className="h-px w-full bg-slate-300" />
+        <div className="flex flex-col items-center w-10 shrink-0">
+          <div className="h-px w-full" style={{ background: "var(--border-mid)" }} />
           {deltaLabel && (
-            <span className="text-xs font-semibold mt-0.5" style={{ color: deltaColor }}>
+            <span className="text-[10px] font-semibold mt-0.5 tabular" style={{ color: deltaColor }}>
               {deltaLabel}
             </span>
           )}
@@ -55,31 +49,31 @@ function TimelineStep({
       )}
       <div className="flex flex-col items-center shrink-0">
         <div
-          className={`w-4 h-4 rounded-full border-2 ${
-            sinDato
-              ? "border-slate-300 bg-white"
-              : esReal
-              ? "border-[#002F56] bg-[#002F56]"
-              : "border-[#2E6F9E] bg-white"
-          }`}
+          className="w-4 h-4 rounded-full border-2"
+          style={{
+            borderColor: sinDato ? "var(--border-subtle)" : AZUL,
+            background: sinDato ? "var(--surface-0)" : esReal ? AZUL : "var(--surface-1)",
+          }}
         />
-        <span className="text-xs text-slate-500 mt-1">{ETAPA_LABEL[etapa]}</span>
+        <span className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
+          {ETAPA_LABEL[etapa] ?? etapa}
+        </span>
         <span
-          className={`text-sm font-semibold mt-0.5 ${
-            sinDato ? "text-slate-400" : "text-slate-900"
-          }`}
+          className="text-sm font-semibold mt-0.5 tabular"
+          style={{ color: sinDato ? "var(--text-muted)" : "var(--text-primary)" }}
         >
           {sinDato ? "—" : valor!.toLocaleString("es-PE")}
         </span>
         {!sinDato && (
           <span
-            className={`text-[10px] mt-0.5 px-1.5 py-0.5 rounded-full ${
+            className="text-[9px] mt-0.5 px-1.5 py-0.5 rounded-full font-semibold"
+            style={
               esReal
-                ? "bg-[#002F56] text-white"
-                : "bg-slate-100 text-slate-500"
-            }`}
+                ? { background: AZUL, color: "#fff" }
+                : { background: "var(--surface-0)", color: "var(--text-muted)", border: "1px solid var(--border-subtle)" }
+            }
           >
-            {esReal ? "envío real" : "arrastre"}
+            {esReal ? "real" : "arrastre"}
           </span>
         )}
       </div>
@@ -87,31 +81,26 @@ function TimelineStep({
   );
 }
 
-// ── Ficha principal ───────────────────────────────────────────────
+// ── Ficha MCP ─────────────────────────────────────────────────────
 function FichaMcp({ mcp, allMcps }: { mcp: Mcp; allMcps: Mcp[] }) {
+  const [open, setOpen] = useState(true);
   const isAnterior = mcp.rolFila === "ANTERIOR";
 
-  // MCP vinculada (para ANTERIOR busca la vigente; para VIGENTE busca la anterior)
   const vinculada = useMemo(() => {
-    if (isAnterior && mcp.idVinculo) {
+    if (!mcp.idVinculo) return null;
+    if (isAnterior)
       return allMcps.find((m) => m.codMcpReniec === mcp.idVinculo && m.rolFila !== "ANTERIOR") ?? null;
-    }
-    if (!isAnterior && mcp.idVinculo) {
-      return allMcps.find((m) => m.codMcpReniec === mcp.idVinculo && m.rolFila === "ANTERIOR") ?? null;
-    }
-    return null;
+    return allMcps.find((m) => m.codMcpReniec === mcp.idVinculo && m.rolFila === "ANTERIOR") ?? null;
   }, [mcp, allMcps, isAnterior]);
 
-  // Deltas entre etapas
   const deltas: (number | null)[] = ETAPAS_ORDEN.map((etapa, i) => {
     if (i === 0) return null;
-    const actual = etapaValue(mcp, etapa);
+    const actual   = etapaValue(mcp, etapa);
     const anterior = etapaValue(mcp, ETAPAS_ORDEN[i - 1]);
     if (actual === null || anterior === null) return null;
     return actual - anterior;
   });
 
-  // Gráfico de trayectoria (solo etapas con valor)
   const etapasConValor = ETAPAS_ORDEN.filter((e) => etapaValue(mcp, e) !== null);
   const trajTrace: Data[] = [
     {
@@ -132,161 +121,189 @@ function FichaMcp({ mcp, allMcps }: { mcp: Mcp; allMcps: Mcp[] }) {
 
   if (isAnterior) {
     return (
-      <details className="rounded-xl border border-amber-200 bg-amber-50 mb-4 open:shadow-sm" open>
-        <summary className="cursor-pointer px-5 py-4 font-semibold text-slate-800 flex items-center gap-2">
-          <span className="text-lg">🕰️</span>
-          <span>{mcp.mcp}</span>
-          <span className="ml-2 text-xs font-medium bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">
-            Identidad anterior (reclasificada)
+      <div className="ficha-card" style={{ borderColor: "#d97706", borderLeftWidth: 3, borderLeftColor: "#d97706" }}>
+        <div
+          className="ficha-card__header"
+          style={{ background: "#fffbeb", borderBottomColor: "#fde68a" }}
+          onClick={() => setOpen(!open)}
+        >
+          <span style={{ fontSize: "1.1rem" }}>🕰️</span>
+          <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{mcp.mcp}</span>
+          <span
+            className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{ background: "#fde68a", color: "#92400e" }}
+          >
+            Identidad anterior
           </span>
-        </summary>
-        <div className="px-5 pb-5">
-          <p className="text-sm text-amber-800 mb-3">
-            Esta identidad ya no está vigente. Su padrón final está registrado bajo otra MCP.
-          </p>
-          {vinculada && (
-            <div className="rounded-lg bg-white border border-slate-200 p-4 mb-3">
-              <p className="text-xs text-slate-500 mb-1">MCP vigente vinculada</p>
-              <p className="font-semibold text-slate-900">{vinculada.mcp}</p>
-              <p className="text-sm text-slate-500">
-                {vinculada.departamento} › {vinculada.provincia} › {vinculada.distrito}
-              </p>
-              <p className="text-sm text-slate-500 mt-1">
-                Código: {vinculada.codMcpReniec} · {vinculada.etapaFinal?.toLocaleString("es-PE")} electores
-              </p>
-            </div>
-          )}
-          {mcp.descripcionCaso && (
-            <p className="text-sm text-slate-700 mt-2">
-              <strong>Descripción:</strong> {mcp.descripcionCaso}
-            </p>
-          )}
+          <span className="ml-auto text-sm" style={{ color: "var(--text-muted)" }}>{open ? "▲" : "▼"}</span>
         </div>
-      </details>
-    );
-  }
-
-  return (
-    <details className="rounded-xl border border-slate-200 mb-4 open:shadow-sm" open>
-      <summary className="cursor-pointer px-5 py-4 font-semibold text-slate-800 flex items-center gap-2 flex-wrap">
-        <span>{mcp.mcp}</span>
-        <span className="text-slate-400 font-normal text-sm">
-          {mcp.departamento} › {mcp.provincia} › {mcp.distrito}
-        </span>
-        <span className="text-xs text-slate-400 font-mono">{mcp.codMcpReniec}</span>
-      </summary>
-
-      <div className="px-5 pb-5">
-        {/* Timeline */}
-        <div className="mb-5">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-            Trayectoria de electores
-          </p>
-          <div className="flex items-start overflow-x-auto pb-2">
-            {ETAPAS_ORDEN.map((etapa, i) => (
-              <TimelineStep
-                key={etapa}
-                etapa={etapa}
-                valor={etapaValue(mcp, etapa)}
-                esReal={esEtapaReal(mcp, etapa)}
-                delta={deltas[i]}
-                esPrimero={i === 0}
-              />
-            ))}
-          </div>
-          <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-[#002F56] inline-block" /> Envío real
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full border-2 border-[#2E6F9E] bg-white inline-block" /> Arrastre de etapa anterior
-            </span>
-          </div>
-        </div>
-
-        {/* Gráfico */}
-        {etapasConValor.length > 1 && (
-          <PlotlyChart
-            data={trajTrace}
-            height={200}
-            layout={{
-              xaxis: { categoryorder: "array", categoryarray: ETAPAS_ORDEN as unknown as string[] },
-              yaxis: { title: { text: "Electores" } },
-              margin: { t: 10, b: 30, l: 70, r: 20 },
-            }}
-          />
-        )}
-
-        {/* Métricas rápidas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 mb-4">
-          <div className="rounded-lg bg-slate-50 px-3 py-2.5">
-            <p className="text-xs text-slate-500">Electores finales</p>
-            <p className="text-xl font-semibold text-slate-900">
-              {mcp.etapaFinal?.toLocaleString("es-PE") ?? "—"}
+        {open && (
+          <div className="ficha-card__body">
+            <p className="text-sm mb-3" style={{ color: "#92400e" }}>
+              Esta identidad ya no está vigente. Su padrón final está registrado bajo otra MCP.
             </p>
-          </div>
-          <div className="rounded-lg bg-slate-50 px-3 py-2.5">
-            <p className="text-xs text-slate-500">Variación Feb → Final</p>
-            <p
-              className="text-xl font-semibold"
-              style={{ color: mcp.variacionAbs === null ? GRIS : mcp.variacionAbs >= 0 ? VERDE : ROJO }}
-            >
-              {mcp.variacionAbs === null
-                ? "—"
-                : `${mcp.variacionAbs >= 0 ? "+" : ""}${mcp.variacionAbs.toLocaleString("es-PE")}`}
-            </p>
-            {mcp.variacionPct !== null && (
-              <p className="text-xs text-slate-500">{mcp.variacionPct >= 0 ? "+" : ""}{mcp.variacionPct.toFixed(1)} %</p>
-            )}
-          </div>
-          <div className="rounded-lg bg-slate-50 px-3 py-2.5">
-            <p className="text-xs text-slate-500">Rondas con envío real</p>
-            <p className="text-xl font-semibold text-slate-900">{mcp.nCorrecciones}</p>
-          </div>
-          <div className="rounded-lg bg-slate-50 px-3 py-2.5">
-            <p className="text-xs text-slate-500">Dato final tomado de</p>
-            <p className="text-sm font-semibold text-slate-900 break-words">{mcp.carpetaOrigen ?? "—"}</p>
-          </div>
-        </div>
-
-        {/* Identidad */}
-        <div className="rounded-lg border border-slate-200 p-3 text-sm text-slate-700 mb-3">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Identidad</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            <span className="text-slate-500">Rol</span>
-            <span className="font-medium">{mcp.rolFila}</span>
-            <span className="text-slate-500">UBIGEO</span>
-            <span className="font-mono">{mcp.ubigeo ?? "—"}</span>
-            {mcp.clasificacionHistorica && (
-              <>
-                <span className="text-slate-500">Clasificación</span>
-                <span>{mcp.clasificacionHistorica}</span>
-              </>
-            )}
             {vinculada && (
-              <>
-                <span className="text-slate-500">Identidad anterior vinculada</span>
-                <span>{vinculada.mcp} <span className="text-slate-400 font-mono text-xs">({vinculada.codMcpReniec})</span></span>
-              </>
+              <div className="metric-tile mb-3">
+                <p className="metric-tile__label">MCP vigente vinculada</p>
+                <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{vinculada.mcp}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                  {vinculada.departamento} › {vinculada.provincia} · cód. {vinculada.codMcpReniec}
+                </p>
+                <p className="text-xs mt-0.5 tabular" style={{ color: "var(--text-secondary)" }}>
+                  {vinculada.etapaFinal?.toLocaleString("es-PE")} electores (final)
+                </p>
+              </div>
             )}
-          </div>
-        </div>
-
-        {/* Nota o descripción */}
-        {(mcp.descripcionCaso || mcp.nota) && (
-          <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5 text-sm text-blue-900">
-            <p className="font-semibold mb-0.5">Nota</p>
-            <p>{mcp.descripcionCaso ?? mcp.nota}</p>
+            {mcp.descripcionCaso && (
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                <strong>Descripción:</strong> {mcp.descripcionCaso}
+              </p>
+            )}
           </div>
         )}
       </div>
-    </details>
+    );
+  }
+
+  const varColor =
+    mcp.variacionAbs === null ? GRIS : mcp.variacionAbs >= 0 ? VERDE : ROJO;
+
+  return (
+    <div className="ficha-card">
+      <div className="ficha-card__header" onClick={() => setOpen(!open)}>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold truncate" style={{ color: "var(--text-primary)" }}>{mcp.mcp}</p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            {mcp.departamento} › {mcp.provincia} › {mcp.distrito}
+            <span className="ml-2 font-mono">{mcp.codMcpReniec}</span>
+          </p>
+        </div>
+        <span className="text-sm" style={{ color: "var(--text-muted)" }}>{open ? "▲" : "▼"}</span>
+      </div>
+
+      {open && (
+        <div className="ficha-card__body">
+          {/* Timeline */}
+          <div className="mb-5">
+            <p className="text-[10px] font-bold tracking-widest uppercase mb-3" style={{ color: "var(--text-muted)" }}>
+              Trayectoria de electores
+            </p>
+            <div className="flex items-start overflow-x-auto pb-2">
+              {ETAPAS_ORDEN.map((etapa, i) => (
+                <TimelineStep
+                  key={etapa}
+                  etapa={etapa}
+                  valor={etapaValue(mcp, etapa)}
+                  esReal={esEtapaReal(mcp, etapa)}
+                  delta={deltas[i]}
+                  esPrimero={i === 0}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-4 mt-3">
+              <span className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                <span className="w-3 h-3 rounded-full inline-block" style={{ background: AZUL }} />
+                Envío real
+              </span>
+              <span className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                <span className="w-3 h-3 rounded-full border-2 inline-block" style={{ borderColor: AZUL_MED }} />
+                Arrastre
+              </span>
+            </div>
+          </div>
+
+          {/* Mini chart */}
+          {etapasConValor.length > 1 && (
+            <PlotlyChart
+              data={trajTrace}
+              height={200}
+              layout={{
+                xaxis: { categoryorder: "array", categoryarray: ETAPAS_ORDEN as unknown as string[] },
+                yaxis: { title: { text: "Electores" } },
+                margin: { t: 10, b: 30, l: 70, r: 20 },
+              }}
+            />
+          )}
+
+          {/* Metric tiles */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 mb-4">
+            <div className="metric-tile">
+              <p className="metric-tile__label">Electores finales</p>
+              <p className="metric-tile__value">
+                {mcp.etapaFinal?.toLocaleString("es-PE") ?? "—"}
+              </p>
+            </div>
+            <div className="metric-tile">
+              <p className="metric-tile__label">Variación Feb → Final</p>
+              <p className="metric-tile__value" style={{ color: varColor }}>
+                {mcp.variacionAbs === null
+                  ? "—"
+                  : `${mcp.variacionAbs >= 0 ? "+" : ""}${mcp.variacionAbs.toLocaleString("es-PE")}`}
+              </p>
+              {mcp.variacionPct !== null && (
+                <p className="text-xs mt-0.5" style={{ color: varColor }}>
+                  {mcp.variacionPct >= 0 ? "+" : ""}{mcp.variacionPct.toFixed(1)} %
+                </p>
+              )}
+            </div>
+            <div className="metric-tile">
+              <p className="metric-tile__label">Rondas con envío real</p>
+              <p className="metric-tile__value">{mcp.nCorrecciones}</p>
+            </div>
+            <div className="metric-tile">
+              <p className="metric-tile__label">Dato final tomado de</p>
+              <p className="text-sm font-semibold break-words mt-1" style={{ color: "var(--text-primary)" }}>
+                {mcp.carpetaOrigen ?? "—"}
+              </p>
+            </div>
+          </div>
+
+          {/* Identidad */}
+          <div className="rounded-md p-3 text-sm mb-3" style={{ background: "var(--surface-0)", border: "1px solid var(--border-subtle)" }}>
+            <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: "var(--text-muted)" }}>
+              Identidad
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              <span style={{ color: "var(--text-muted)" }}>Rol</span>
+              <span className="font-medium" style={{ color: "var(--text-primary)" }}>{mcp.rolFila}</span>
+              <span style={{ color: "var(--text-muted)" }}>UBIGEO</span>
+              <span className="font-mono" style={{ color: "var(--text-secondary)" }}>{mcp.ubigeo ?? "—"}</span>
+              {mcp.clasificacionHistorica && (
+                <>
+                  <span style={{ color: "var(--text-muted)" }}>Clasificación</span>
+                  <span style={{ color: "var(--text-secondary)" }}>{mcp.clasificacionHistorica}</span>
+                </>
+              )}
+              {vinculada && (
+                <>
+                  <span style={{ color: "var(--text-muted)" }}>Identidad anterior</span>
+                  <span style={{ color: "var(--text-secondary)" }}>
+                    {vinculada.mcp}
+                    <span className="font-mono text-xs ml-1" style={{ color: "var(--text-muted)" }}>
+                      ({vinculada.codMcpReniec})
+                    </span>
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Nota */}
+          {(mcp.descripcionCaso || mcp.nota) && (
+            <div className="rounded-md px-3 py-2.5 text-sm" style={{ background: "var(--blue-ghost)", border: "1px solid var(--blue-pale)", color: "var(--blue-brand)" }}>
+              <p className="font-semibold mb-0.5">Nota</p>
+              <p style={{ color: "var(--text-secondary)" }}>{mcp.descripcionCaso ?? mcp.nota}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
 // ── Tabla filtrable ───────────────────────────────────────────────
 function TablaCompleta({ mcps }: { mcps: Mcp[] }) {
-  const [depto, setDepto] = useState("(Todos)");
+  const [depto, setDepto]     = useState("(Todos)");
   const [carpeta, setCarpeta] = useState("(Todas)");
 
   const deptos   = useMemo(() => ["(Todos)", ...Array.from(new Set(mcps.map((m) => m.departamento).filter(Boolean))).sort()], [mcps]);
@@ -294,67 +311,83 @@ function TablaCompleta({ mcps }: { mcps: Mcp[] }) {
 
   const filtered = useMemo(() => {
     let r = mcps;
-    if (depto !== "(Todos)") r = r.filter((m) => m.departamento === depto);
+    if (depto   !== "(Todos)") r = r.filter((m) => m.departamento === depto);
     if (carpeta !== "(Todas)") r = r.filter((m) => (m.carpetaOrigen ?? "Sin datos") === carpeta);
     return r;
   }, [mcps, depto, carpeta]);
 
   function toCSV() {
-    const header = ["Departamento","Provincia","Distrito","MCP","Código","Febrero","Abril","Junio","Final","Variación","Var%","Carpeta origen","Rol"];
-    const lines = filtered.map((m) => [
+    const header = ["Departamento","Provincia","Distrito","MCP","Código","Febrero","Abril","Junio","Julio","Agosto","Final","Variación","Var%","Carpeta origen","Rol"];
+    const lines  = filtered.map((m) => [
       m.departamento, m.provincia, m.distrito, m.mcp, m.codMcpReniec,
-      m.etapaFebrero, m.etapaAbril, m.etapaJunio, m.etapaFinal,
-      m.variacionAbs, m.variacionPct?.toFixed(1),
-      m.carpetaOrigen, m.rolFila,
+      m.etapaFebrero, m.etapaAbril, m.etapaJunio, m.etapaJulio, m.etapaAgosto, m.etapaFinal,
+      m.variacionAbs, m.variacionPct?.toFixed(1), m.carpetaOrigen, m.rolFila,
     ]);
     const csv = [header, ...lines].map((r) => r.map((v) => `"${v ?? ""}"`).join(",")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "mcp_trazabilidad.csv"; a.click();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = "mcp_trazabilidad.csv"; a.click();
     URL.revokeObjectURL(url);
   }
 
+  const selectStyle = {
+    border: "1px solid var(--border-subtle)",
+    borderRadius: "var(--radius-sm)",
+    padding: "0.4rem 0.75rem",
+    fontSize: "0.82rem",
+    color: "var(--text-secondary)",
+    background: "var(--surface-1)",
+    outline: "none",
+  };
+
   return (
     <div>
-      <div className="flex flex-wrap gap-3 mb-3">
-        <select className="border border-slate-300 rounded-md px-3 py-1.5 text-sm" value={depto} onChange={(e) => setDepto(e.target.value)}>
+      <div className="flex flex-wrap gap-3 mb-3 items-center">
+        <select style={selectStyle} value={depto}   onChange={(e) => setDepto(e.target.value)}>
           {deptos.map((d) => <option key={d}>{d}</option>)}
         </select>
-        <select className="border border-slate-300 rounded-md px-3 py-1.5 text-sm" value={carpeta} onChange={(e) => setCarpeta(e.target.value)}>
+        <select style={selectStyle} value={carpeta} onChange={(e) => setCarpeta(e.target.value)}>
           {carpetas.map((c) => <option key={c}>{c}</option>)}
         </select>
-        <button onClick={toCSV} className="ml-auto text-sm font-medium bg-[#002F56] text-white rounded-md px-4 py-1.5 hover:bg-[#00396b]">
-          ⬇ Descargar .csv
+        <button className="btn-primary ml-auto" onClick={toCSV}>
+          ↓ Descargar .csv
         </button>
       </div>
-      <p className="text-sm text-slate-500 mb-2">{filtered.length.toLocaleString("es-PE")} MCPs</p>
-      <div className="overflow-auto max-h-[480px] rounded-lg border border-slate-200">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-600 sticky top-0">
+      <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>
+        {filtered.length.toLocaleString("es-PE")} MCPs
+      </p>
+      <div className="overflow-auto max-h-[480px] rounded-lg" style={{ border: "1px solid var(--border-subtle)" }}>
+        <table className="data-table">
+          <thead>
             <tr>
-              {["Departamento","Provincia","MCP","Código","Feb.","Abr.","Jun.","Final","Var. abs.","Var. %","Carpeta origen"].map((h) => (
-                <th key={h} className="px-3 py-2 whitespace-nowrap">{h}</th>
+              {["Departamento","Provincia","MCP","Código","Feb.","Abr.","Jun.","Jul.","Ago.","Final","Var. abs.","Var. %","Carpeta origen"].map((h) => (
+                <th key={h}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.map((m) => (
-              <tr key={m.cod ?? m.mcp} className="border-t border-slate-100">
-                <td className="px-3 py-1.5 whitespace-nowrap">{m.departamento}</td>
-                <td className="px-3 py-1.5 whitespace-nowrap">{m.provincia}</td>
-                <td className="px-3 py-1.5 whitespace-nowrap">{m.mcp}</td>
-                <td className="px-3 py-1.5 font-mono text-xs">{m.codMcpReniec}</td>
-                <td className="px-3 py-1.5 text-right">{m.etapaFebrero?.toLocaleString("es-PE") ?? "—"}</td>
-                <td className="px-3 py-1.5 text-right">{m.etapaAbril?.toLocaleString("es-PE") ?? "—"}</td>
-                <td className="px-3 py-1.5 text-right">{m.etapaJunio?.toLocaleString("es-PE") ?? "—"}</td>
-                <td className="px-3 py-1.5 text-right font-semibold">{m.etapaFinal?.toLocaleString("es-PE") ?? "—"}</td>
-                <td className="px-3 py-1.5 text-right" style={{ color: (m.variacionAbs ?? 0) >= 0 ? VERDE : ROJO }}>
+              <tr key={m.cod ?? m.mcp}>
+                <td>{m.departamento}</td>
+                <td>{m.provincia}</td>
+                <td>{m.mcp}</td>
+                <td className="font-mono text-xs">{m.codMcpReniec}</td>
+                <td className="text-right tabular">{m.etapaFebrero?.toLocaleString("es-PE") ?? "—"}</td>
+                <td className="text-right tabular">{m.etapaAbril?.toLocaleString("es-PE")   ?? "—"}</td>
+                <td className="text-right tabular">{m.etapaJunio?.toLocaleString("es-PE")   ?? "—"}</td>
+                <td className="text-right tabular">{m.etapaJulio?.toLocaleString("es-PE")   ?? "—"}</td>
+                <td className="text-right tabular">{m.etapaAgosto?.toLocaleString("es-PE")  ?? "—"}</td>
+                <td className="text-right tabular font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {m.etapaFinal?.toLocaleString("es-PE") ?? "—"}
+                </td>
+                <td className="text-right tabular" style={{ color: (m.variacionAbs ?? 0) >= 0 ? VERDE : ROJO }}>
                   {m.variacionAbs === null ? "—" : `${m.variacionAbs >= 0 ? "+" : ""}${m.variacionAbs.toLocaleString("es-PE")}`}
                 </td>
-                <td className="px-3 py-1.5 text-right" style={{ color: (m.variacionPct ?? 0) >= 0 ? VERDE : ROJO }}>
+                <td className="text-right tabular" style={{ color: (m.variacionPct ?? 0) >= 0 ? VERDE : ROJO }}>
                   {m.variacionPct === null ? "—" : `${m.variacionPct >= 0 ? "+" : ""}${m.variacionPct.toFixed(1)} %`}
                 </td>
-                <td className="px-3 py-1.5 text-xs whitespace-nowrap">{m.carpetaOrigen ?? "—"}</td>
+                <td className="text-xs">{m.carpetaOrigen ?? "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -371,7 +404,7 @@ interface Props {
 }
 
 export default function FichaSearch({ allMcps, vigentes }: Props) {
-  const [query, setQuery] = useState("");
+  const [query,    setQuery]    = useState("");
   const [selected, setSelected] = useState<Mcp | null>(null);
 
   const sugerencias = useMemo(() => {
@@ -389,45 +422,54 @@ export default function FichaSearch({ allMcps, vigentes }: Props) {
 
   return (
     <div>
-      {/* Buscador */}
+      {/* Search */}
       <div className="relative mb-6 max-w-xl">
+        <svg
+          className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+          width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        >
+          <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
         <input
           type="text"
           placeholder="Buscar MCP por nombre, código o departamento…"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
-          className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002F56]"
+          className="search-input"
         />
         {sugerencias.length > 0 && !selected && (
-          <ul className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-72 overflow-y-auto text-sm">
+          <div className="dropdown absolute z-10 mt-1 w-full max-h-72 overflow-y-auto">
             {sugerencias.map((m) => (
-              <li
+              <div
                 key={m.codMcpReniec ?? m.mcp}
-                className="px-4 py-2.5 cursor-pointer hover:bg-slate-50 flex items-start gap-2"
+                className="dropdown-item"
                 onClick={() => { setSelected(m); setQuery(m.mcp ?? ""); }}
               >
-                <span className="shrink-0 text-slate-400 mt-0.5">
+                <span className="shrink-0 mt-0.5" style={{ color: "var(--text-muted)" }}>
                   {m.rolFila === "ANTERIOR" ? "🕰️" : "📍"}
                 </span>
                 <div>
-                  <p className="font-medium text-slate-900">{m.mcp}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="font-medium text-sm" style={{ color: "var(--text-primary)" }}>{m.mcp}</p>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                     {m.departamento} › {m.provincia} · {m.codMcpReniec}
                     {m.rolFila === "ANTERIOR" && " · Identidad anterior"}
                   </p>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
       {/* Ficha */}
       {selected && <FichaMcp mcp={selected} allMcps={allMcps} />}
 
-      {/* Tabla completa */}
+      {/* Tabla */}
       <div className="mt-8">
-        <h2 className="text-lg font-semibold text-slate-900 mb-3">Tabla de trazabilidad</h2>
+        <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "var(--text-muted)" }}>
+          Tabla de trazabilidad
+        </p>
         <TablaCompleta mcps={vigentes} />
       </div>
     </div>

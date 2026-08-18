@@ -22,9 +22,8 @@ const ROJO     = "#C0392B";
 
 function Divider({ id, title }: { id: string; title: string }) {
   return (
-    <div id={id} className="mt-14 mb-6 flex items-center gap-4">
-      <h2 className="text-xl font-bold text-slate-900 whitespace-nowrap">{title}</h2>
-      <div className="flex-1 h-px bg-slate-200" />
+    <div id={id} className="section-divider">
+      <h2>{title}</h2>
     </div>
   );
 }
@@ -104,7 +103,8 @@ export default function HomePage() {
 
       {/* ── Evolución ── */}
       <Divider id="evolucion" title="Evolución del padrón" />
-      <p className="text-sm text-slate-500 mb-4">
+      <p className="text-sm mb-4"
+          style={{ color: "var(--text-muted)" }}>
         Línea: total de electores en cada corte de envío (FEBRERO → AGOSTO → FINAL).
         Barras: MCPs que enviaron un padrón nuevo en esa ronda específica.
       </p>
@@ -122,7 +122,8 @@ export default function HomePage() {
 
       {/* ── Top variaciones ── */}
       <Divider id="variaciones" title="Top variaciones" />
-      <p className="text-sm text-slate-500 mb-4">
+      <p className="text-sm mb-4"
+          style={{ color: "var(--text-muted)" }}>
         MCPs con mayor cambio absoluto entre el padrón de febrero y el valor final consolidado.
       </p>
       <PlotlyChart
@@ -137,14 +138,16 @@ export default function HomePage() {
 
       {/* ── Mapa ── */}
       <Divider id="mapa" title="Mapa de distribución" />
-      <p className="text-sm text-slate-500 mb-4">
+      <p className="text-sm mb-4"
+          style={{ color: "var(--text-muted)" }}>
         Distribución geográfica por provincia. Toggle entre N° de MCPs y total de electores.
       </p>
       <MapaDistribucionView stats={mapStats} geojson={geojson} />
 
       {/* ── Ficha ── */}
       <Divider id="ficha" title="Trazabilidad por MCP" />
-      <p className="text-sm text-slate-500 mb-4">
+      <p className="text-sm mb-4"
+          style={{ color: "var(--text-muted)" }}>
         Busca una MCP para ver su trayectoria completa etapa a etapa.
       </p>
       <FichaSearch allMcps={allMcps} vigentes={vigentes} />
