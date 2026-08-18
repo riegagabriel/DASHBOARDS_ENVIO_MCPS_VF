@@ -474,9 +474,12 @@ export default function FichaSearch({ allMcps, vigentes }: Props) {
     return allMcps
       .filter(
         (m) =>
-          m.mcp?.toLowerCase().includes(q) ||
+          m.rolFila !== "ANTERIOR" &&
+          (m.mcp?.toLowerCase().includes(q) ||
           m.codMcpReniec?.includes(q) ||
-          m.departamento?.toLowerCase().includes(q)
+          m.departamento?.toLowerCase().includes(q) ||
+          m.provincia?.toLowerCase().includes(q) ||
+          m.distrito?.toLowerCase().includes(q))
       )
       .slice(0, 10);
   }, [allMcps, query]);
@@ -507,14 +510,11 @@ export default function FichaSearch({ allMcps, vigentes }: Props) {
                 className="dropdown-item"
                 onClick={() => { setSelected(m); setQuery(m.mcp ?? ""); }}
               >
-                <span className="shrink-0 mt-0.5" style={{ color: "var(--text-muted)" }}>
-                  {m.rolFila === "ANTERIOR" ? "🕰️" : "📍"}
-                </span>
+                <span className="shrink-0 mt-0.5" style={{ color: "var(--text-muted)" }}>📍</span>
                 <div>
                   <p className="font-medium text-sm" style={{ color: "var(--text-primary)" }}>{m.mcp}</p>
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    {m.departamento} › {m.provincia} · {m.codMcpReniec}
-                    {m.rolFila === "ANTERIOR" && " · Identidad anterior"}
+                    {m.departamento} › {m.provincia} › {m.distrito} · {m.codMcpReniec}
                   </p>
                 </div>
               </div>

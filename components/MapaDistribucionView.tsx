@@ -37,6 +37,8 @@ export default function MapaDistribucionView({ stats, geojson }: Props) {
         colorscale: BLUES.map((c, i) => [i / (BLUES.length - 1), c]),
         marker: { opacity: 0.85 },
         colorbar: { title: { text: unidad } },
+        text: stats.map((s) => `${s.provincia} (${s.departamento})`),
+        hovertemplate: "<b>%{text}</b><br>" + unidad + ": %{z:.0f}<extra></extra>",
       } as unknown as Data,
     ];
 

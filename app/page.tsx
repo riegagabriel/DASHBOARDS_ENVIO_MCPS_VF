@@ -94,11 +94,11 @@ export default function HomePage() {
       {/* ── KPIs ── */}
       <Divider id="resumen" title="Resumen" />
       <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-        <StatCard label="MCPs vigentes"    value={total.toLocaleString("es-PE")}       caption="Lista final única (agosto 2025)." />
-        <StatCard label="Electores (final)" value={totalElec.toLocaleString("es-PE")}  caption="Suma del dato final consolidado de cada MCP." />
-        <StatCard label="MCPs con cambios"  value={conCambio.toLocaleString("es-PE")} delta={`${((conCambio/total)*100).toFixed(1)} %`} deltaTone="neutral"   caption="Variación ≠ 0 entre febrero y final." />
-        <StatCard label="MCPs estables"     value={estables.toLocaleString("es-PE")}  delta={`${((estables/total)*100).toFixed(1)} %`}  deltaTone="positive" caption="Sin cambios entre primera y última etapa." />
-        <StatCard label="MCPs sin febrero"  value={nNuevas.toLocaleString("es-PE")}   caption="Incorporadas a partir de abril o después." />
+        <StatCard label="Cantidad de MCPs"            value={total.toLocaleString("es-PE")}       caption="Lista final de MCPs única (08/2026)." />
+        <StatCard label="Cantidad de electores de MCP" value={totalElec.toLocaleString("es-PE")}  caption="Suma de electores de la lista final de MCPs." />
+        <StatCard label="MCPs con cambios"             value={conCambio.toLocaleString("es-PE")} delta={`${((conCambio/total)*100).toFixed(1)} %`} deltaTone="neutral"   caption="Total de MCPs que presentaron cambios a partir del primer envío de febrero." />
+        <StatCard label="MCPs estables"                value={estables.toLocaleString("es-PE")}  delta={`${((estables/total)*100).toFixed(1)} %`}  deltaTone="positive" caption="MCPs sin variación entre el primer envío de febrero y el envío final." />
+        <StatCard label="MCPs sin febrero"             value={nNuevas.toLocaleString("es-PE")}   caption="Incorporadas después del primer envío de febrero." />
       </div>
 
       {/* ── Evolución ── */}
@@ -110,13 +110,13 @@ export default function HomePage() {
       </p>
       <PlotlyChart
         data={evolTrace}
-        height={360}
+        height={440}
         layout={{
-          legend: { orientation: "h", y: -0.18 },
+          legend: { orientation: "h", y: -0.15 },
           xaxis: { categoryorder: "array", categoryarray: ETAPAS_ORDEN as unknown as string[] },
           yaxis:  { title: { text: "MCPs con envío real" } },
           yaxis2: { title: { text: "Total electores" }, overlaying: "y", side: "right" },
-          margin: { t: 30, b: 60 },
+          margin: { t: 60, b: 60 },
         }}
       />
 
