@@ -1,23 +1,44 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import StatCard from "@/components/StatCard";
 import PlotlyChart from "@/components/PlotlyChart";
-import { getVigentes, getEvolucionAgregada, getTopVariaciones } from "@/lib/data";
+import MapaDistribucionView from "@/components/MapaDistribucionView";
+import FichaSearch from "@/components/FichaSearch";
+import {
+  getAllMcps,
+  getVigentes,
+  getEvolucionAgregada,
+  getTopVariaciones,
+  getEstadisticasPorProvincia,
+} from "@/lib/data";
 import { ETAPAS_ORDEN } from "@/lib/types";
 import type { Data } from "plotly.js";
+import type GeoJSON from "geojson";
 
 const AZUL     = "#002F56";
 const AZUL_PAL = "#B8D2E8";
 const VERDE    = "#27AE60";
 const ROJO     = "#C0392B";
 
-export default function InicioPage() {
-  const vigentes = getVigentes();
-  const total = vigentes.length;
-  const totalElectores = vigentes.reduce((s, m) => s + (m.etapaFinal ?? 0), 0);
+function Divider({ id, title }: { id: string; title: string }) {
+  return (
+    <div id={id} className="mt-14 mb-6 flex items-center gap-4">
+      <h2 className="text-xl font-bold text-slate-900 whitespace-nowrap">{title}</h2>
+      <div className="flex-1 h-px bg-slate-200" />
+    </div>
+  );
+}
+
+export default function HomePage() {
+  const vigentes  = getVigentes();
+  const allMcps   = getAllMcps();
+  const total     = vigentes.length;
+  const totalElec = vigentes.reduce((s, m) => s + (m.etapaFinal ?? 0), 0);
   const nNuevas   = vigentes.filter((m) => m.etapaFebrero === null).length;
   const conCambio = vigentes.filter((m) => m.variacionAbs !== null && m.variacionAbs !== 0).length;
   const estables  = vigentes.filter((m) => m.variacionAbs === 0).length;
 
-  // ── Evolución ─────────────────────────────────────────────────────
+  // ── Evolución (todas las rondas) ─────────────────────────────────
   const evol = getEvolucionAgregada();
   const evolTrace: Data[] = [
     {
@@ -49,51 +70,47 @@ export default function InicioPage() {
   const bajo   = topVar.filter((m) => (m.variacionAbs ?? 0) < 0).reverse();
   const varTrace: Data[] = [
     {
-      type: "bar",
-      orientation: "h",
-      name: "Subió",
-      y: subio.map((m) => m.mcp),
-      x: subio.map((m) => m.variacionAbs),
+      type: "bar", orientation: "h", name: "Subió",
+      y: subio.map((m) => m.mcp), x: subio.map((m) => m.variacionAbs),
       marker: { color: VERDE },
       text: subio.map((m) => `+${m.variacionAbs?.toLocaleString("es-PE")}`),
       textposition: "outside",
     },
     {
-      type: "bar",
-      orientation: "h",
-      name: "Bajó",
-      y: bajo.map((m) => m.mcp),
-      x: bajo.map((m) => m.variacionAbs),
+      type: "bar", orientation: "h", name: "Bajó",
+      y: bajo.map((m) => m.mcp), x: bajo.map((m) => m.variacionAbs),
       marker: { color: ROJO },
       text: bajo.map((m) => m.variacionAbs?.toLocaleString("es-PE") ?? ""),
       textposition: "outside",
     },
   ];
 
+  // ── Mapa ─────────────────────────────────────────────────────────
+  const mapStats   = getEstadisticasPorProvincia();
+  const geojsonPath = join(process.cwd(), "data", "provincias.geojson");
+  const geojson = JSON.parse(readFileSync(geojsonPath, "utf-8")) as GeoJSON.FeatureCollection;
+
   return (
     <div>
-      <h1 className="text-3xl font-bold text-slate-900 mb-1">Inicio</h1>
-      <p className="text-sm text-slate-500 mb-6">
-        Universo electoral de Municipalidades de Centro Poblado — padrón consolidado a agosto 2025.
-      </p>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-8">
-        <StatCard label="MCPs vigentes"    value={total.toLocaleString("es-PE")}          caption="Lista final única (agosto 2025)." />
-        <StatCard label="Electores (final)" value={totalElectores.toLocaleString("es-PE")} caption="Suma del dato final consolidado de cada MCP." />
-        <StatCard label="MCPs con cambios"  value={conCambio.toLocaleString("es-PE")} delta={`${((conCambio / total) * 100).toFixed(1)} %`} deltaTone="neutral"   caption="Variación ≠ 0 entre febrero y final." />
-        <StatCard label="MCPs estables"     value={estables.toLocaleString("es-PE")}  delta={`${((estables  / total) * 100).toFixed(1)} %`} deltaTone="positive" caption="Sin cambios entre su primera y última etapa." />
-        <StatCard label="MCPs sin febrero"  value={nNuevas.toLocaleString("es-PE")}       caption="Incorporadas a partir de abril o después." />
+      {/* ── KPIs ── */}
+      <Divider id="resumen" title="Resumen" />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+        <StatCard label="MCPs vigentes"    value={total.toLocaleString("es-PE")}       caption="Lista final única (agosto 2025)." />
+        <StatCard label="Electores (final)" value={totalElec.toLocaleString("es-PE")}  caption="Suma del dato final consolidado de cada MCP." />
+        <StatCard label="MCPs con cambios"  value={conCambio.toLocaleString("es-PE")} delta={`${((conCambio/total)*100).toFixed(1)} %`} deltaTone="neutral"   caption="Variación ≠ 0 entre febrero y final." />
+        <StatCard label="MCPs estables"     value={estables.toLocaleString("es-PE")}  delta={`${((estables/total)*100).toFixed(1)} %`}  deltaTone="positive" caption="Sin cambios entre primera y última etapa." />
+        <StatCard label="MCPs sin febrero"  value={nNuevas.toLocaleString("es-PE")}   caption="Incorporadas a partir de abril o después." />
       </div>
 
-      {/* Evolución */}
-      <h2 className="text-lg font-semibold text-slate-900 mb-1">Evolución del padrón por etapa</h2>
-      <p className="text-sm text-slate-500 mb-3">
-        Línea: total de electores acumulados en cada corte. Barras: MCPs que enviaron un padrón nuevo en esa ronda.
+      {/* ── Evolución ── */}
+      <Divider id="evolucion" title="Evolución del padrón" />
+      <p className="text-sm text-slate-500 mb-4">
+        Línea: total de electores en cada corte de envío (FEBRERO → AGOSTO → FINAL).
+        Barras: MCPs que enviaron un padrón nuevo en esa ronda específica.
       </p>
       <PlotlyChart
         data={evolTrace}
-        height={340}
+        height={360}
         layout={{
           legend: { orientation: "h", y: -0.18 },
           xaxis: { categoryorder: "array", categoryarray: ETAPAS_ORDEN as unknown as string[] },
@@ -103,12 +120,10 @@ export default function InicioPage() {
         }}
       />
 
-      {/* Top variaciones */}
-      <h2 className="text-lg font-semibold text-slate-900 mt-10 mb-1">
-        Top 20 MCPs por variación absoluta (Feb → Final)
-      </h2>
-      <p className="text-sm text-slate-500 mb-3">
-        MCPs con mayor cambio entre el padrón de febrero y el valor final consolidado.
+      {/* ── Top variaciones ── */}
+      <Divider id="variaciones" title="Top variaciones" />
+      <p className="text-sm text-slate-500 mb-4">
+        MCPs con mayor cambio absoluto entre el padrón de febrero y el valor final consolidado.
       </p>
       <PlotlyChart
         data={varTrace}
@@ -119,6 +134,20 @@ export default function InicioPage() {
           legend: { orientation: "h", y: -0.09 },
         }}
       />
+
+      {/* ── Mapa ── */}
+      <Divider id="mapa" title="Mapa de distribución" />
+      <p className="text-sm text-slate-500 mb-4">
+        Distribución geográfica por provincia. Toggle entre N° de MCPs y total de electores.
+      </p>
+      <MapaDistribucionView stats={mapStats} geojson={geojson} />
+
+      {/* ── Ficha ── */}
+      <Divider id="ficha" title="Trazabilidad por MCP" />
+      <p className="text-sm text-slate-500 mb-4">
+        Busca una MCP para ver su trayectoria completa etapa a etapa.
+      </p>
+      <FichaSearch allMcps={allMcps} vigentes={vigentes} />
     </div>
   );
 }

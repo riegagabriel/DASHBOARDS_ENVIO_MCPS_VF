@@ -17,13 +17,17 @@ export function etapaValue(m: Mcp, etapa: Etapa): number | null {
     case "FEBRERO": return m.etapaFebrero;
     case "ABRIL":   return m.etapaAbril;
     case "JUNIO":   return m.etapaJunio;
+    case "JULIO":   return m.etapaJulio;
+    case "AGOSTO":  return m.etapaAgosto;
     case "FINAL":   return m.etapaFinal;
   }
 }
 
 export function esEtapaReal(m: Mcp, etapa: Etapa): boolean {
-  if (etapa === "ABRIL") return m.esAbrilReal;
-  if (etapa === "JUNIO") return m.esJunioReal;
+  if (etapa === "ABRIL")  return m.esAbrilReal;
+  if (etapa === "JUNIO")  return m.esJunioReal;
+  if (etapa === "JULIO")  return m.esJulioReal;
+  if (etapa === "AGOSTO") return m.esAgostoReal;
   return true;
 }
 

@@ -21,9 +21,13 @@ export interface Mcp {
   etapaFebrero: number | null;
   etapaAbril: number | null;
   etapaJunio: number | null;
+  etapaJulio: number | null;
+  etapaAgosto: number | null;
   etapaFinal: number | null;
   esAbrilReal: boolean;
   esJunioReal: boolean;
+  esJulioReal: boolean;
+  esAgostoReal: boolean;
   variacionAbs: number | null;
   variacionPct: number | null;
   nCorrecciones: number;
@@ -36,7 +40,7 @@ export interface Mcp {
   fuenteResultadoFinal: string | null;
 }
 
-export const ETAPAS_ORDEN = ["FEBRERO", "ABRIL", "JUNIO", "FINAL"] as const;
+export const ETAPAS_ORDEN = ["FEBRERO", "ABRIL", "JUNIO", "JULIO", "AGOSTO", "FINAL"] as const;
 export type Etapa = (typeof ETAPAS_ORDEN)[number];
 
 export interface ProvinciaFeatureProps {

@@ -125,17 +125,12 @@ def load_lista_final() -> dict[str, dict]:
 
 def load_versiones() -> dict[str, dict]:
     """
-    Fuente 2: conteos por etapa.
-    Retorna {cod: {feb, abr, jun, esAbrilReal, esJunioReal}}.
+    Fuente 2: conteos por etapa (todas las rondas).
+    Retorna {cod: {feb, abr, jun, jul, ago,
+                   esAbrilReal, esJunioReal, esJulioReal, esAgostoReal}}.
 
-    Lógica de etapas:
-      - feb = hoja 1_FEBRERO
-      - abr = hoja 2_ABRIL (si no aparece → arrastrado de feb)
-      - jun = hojas 3_JUNIO_ORIG + 4_JUNIO_POST (si no aparece → arrastrado de abr)
-      - esAbrilReal  = presente en 2_ABRIL
-      - esJunioReal  = presente en 3_JUNIO_ORIG o 4_JUNIO_POST
-      Las hojas 5-8 (JULIO_*, AGOSTO) solo afectan etapaFinal,
-      ya capturado en LISTA_FINAL — no generan una etapa adicional.
+    Lógica de arrastre:
+      feb → abr (si no hay envío real) → jun → jul → ago
     """
     xl = pd.ExcelFile(VERSIONES_PATH)
 
@@ -148,22 +143,28 @@ def load_versiones() -> dict[str, dict]:
     abr  = read_sheet("2_ABRIL")
     jun1 = read_sheet("3_JUNIO_ORIG")
     jun2 = read_sheet("4_JUNIO_POST")
-    jun  = {**jun1, **jun2}  # JUNIO_POST sobreescribe JUNIO_ORIG si el cod aparece en ambos
+    jun  = {**jun1, **jun2}
+    jul  = {
+        **read_sheet("5_JULIO_JAEN"),
+        **read_sheet("6_JULIO_PICHANAQUI"),
+        **read_sheet("7_JULIO_31MCPS"),
+    }
+    ago  = read_sheet("8_AGOSTO")
 
-    all_cods = set(feb) | set(abr) | set(jun)
+    all_cods = set(feb) | set(abr) | set(jun) | set(jul) | set(ago)
     out: dict[str, dict] = {}
     for cod in all_cods:
         feb_val = feb.get(cod)
-        abr_val = abr.get(cod)
-        jun_val = jun.get(cod)
-        es_abr_real = cod in abr
-        es_jun_real = cod in jun
+        abr_real = cod in abr;  abr_val = abr.get(cod) if abr_real else feb_val
+        jun_real = cod in jun;  jun_val = jun.get(cod) if jun_real else abr_val
+        jul_real = cod in jul;  jul_val = jul.get(cod) if jul_real else jun_val
+        ago_real = cod in ago;  ago_val = ago.get(cod) if ago_real else jul_val
         out[cod] = {
             "feb": feb_val,
-            "abr": abr_val if es_abr_real else feb_val,   # arrastrado
-            "jun": jun_val if es_jun_real else (abr_val if es_abr_real else feb_val),  # arrastrado
-            "esAbrilReal":  es_abr_real,
-            "esJunioReal":  es_jun_real,
+            "abr": abr_val, "esAbrilReal":  abr_real,
+            "jun": jun_val, "esJunioReal":  jun_real,
+            "jul": jul_val, "esJulioReal":  jul_real,
+            "ago": ago_val, "esAgostoReal": ago_real,
         }
     return out
 
@@ -284,11 +285,14 @@ def build_mcps() -> list[dict]:
         feb = ver.get("feb")
         abr = ver.get("abr")
         jun = ver.get("jun")
+        jul = ver.get("jul")
+        ago = ver.get("ago")
         final_val = fin["cantidad"]
-        es_abr_real = ver.get("esAbrilReal", False)
-        es_jun_real = ver.get("esJunioReal", False)
+        es_abr_real = ver.get("esAbrilReal",  False)
+        es_jun_real = ver.get("esJunioReal",  False)
+        es_jul_real = ver.get("esJulioReal",  False)
+        es_ago_real = ver.get("esAgostoReal", False)
 
-        # Variación: Final vs Febrero (None si no hay dato de Febrero)
         if feb is not None and final_val is not None:
             variacion_abs = final_val - feb
             variacion_pct = round(variacion_abs / feb * 100, 2) if feb != 0 else None
@@ -296,9 +300,13 @@ def build_mcps() -> list[dict]:
             variacion_abs = None
             variacion_pct = None
 
-        # nCorrecciones: rondas donde hubo un dato real nuevo
-        # (Febrero cuenta si existe; Abril y Junio solo si son reales)
-        n_cor = (1 if feb is not None else 0) + (1 if es_abr_real else 0) + (1 if es_jun_real else 0)
+        n_cor = (
+            (1 if feb is not None else 0)
+            + (1 if es_abr_real else 0)
+            + (1 if es_jun_real else 0)
+            + (1 if es_jul_real else 0)
+            + (1 if es_ago_real else 0)
+        )
 
         records.append({
             "codMcpReniec":           cod,
@@ -311,13 +319,17 @@ def build_mcps() -> list[dict]:
             "rolFila":                hist.get("rolFila") or "UNICA",
             "idVinculo":              hist.get("idVinculo"),
             "clasificacionHistorica": hist.get("clasificacionHistorica"),
-            "carpetaOrigen":          fin["carpetaOrigen"],   # ← nuevo campo
+            "carpetaOrigen":          fin["carpetaOrigen"],
             "etapaFebrero":           feb,
             "etapaAbril":             abr,
             "etapaJunio":             jun,
+            "etapaJulio":             jul,
+            "etapaAgosto":            ago,
             "etapaFinal":             final_val,
             "esAbrilReal":            es_abr_real,
             "esJunioReal":            es_jun_real,
+            "esJulioReal":            es_jul_real,
+            "esAgostoReal":           es_ago_real,
             "variacionAbs":           variacion_abs,
             "variacionPct":           variacion_pct,
             "nCorrecciones":          n_cor,
@@ -349,9 +361,13 @@ def build_mcps() -> list[dict]:
             "etapaFebrero":           hist.get("_ant_etapaFebrero"),
             "etapaAbril":             hist.get("_ant_etapaAbril"),
             "etapaJunio":             hist.get("_ant_etapaJunio"),
+            "etapaJulio":             None,
+            "etapaAgosto":            None,
             "etapaFinal":             hist.get("_ant_etapaFinal"),
             "esAbrilReal":            hist.get("_ant_esAbrilReal", False),
             "esJunioReal":            hist.get("_ant_esJunioReal", False),
+            "esJulioReal":            False,
+            "esAgostoReal":           False,
             "variacionAbs":           None,
             "variacionPct":           None,
             "nCorrecciones":          0,
